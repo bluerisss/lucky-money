@@ -1,13 +1,11 @@
 // Weighted random money amount in VND
 const AMOUNTS: { value: number; weight: number }[] = [
+  { value: 0, weight: 10 },
   { value: 10000, weight: 25 },
   { value: 20000, weight: 20 },
   { value: 50000, weight: 18 },
   { value: 100000, weight: 15 },
-  { value: 200000, weight: 10 },
-  { value: 300000, weight: 6 },
-  { value: 500000, weight: 3 },
-  { value: 888000, weight: 1 }, // Super lucky jackpot!
+  { value: 200000, weight: 5 },
 ];
 
 export function getRandomAmount(): number {
@@ -25,5 +23,5 @@ export function formatVND(amount: number): string {
 }
 
 export function isJackpot(amount: number): boolean {
-  return amount >= 300000;
+  return amount >= 200000;
 }

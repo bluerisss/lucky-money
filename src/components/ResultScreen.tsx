@@ -4,10 +4,11 @@ import { formatVND, isJackpot } from "@/lib/lottery";
 interface Props {
   amount: number;
   greeting: string;
+  name: string;
   role: string;
 }
 
-export default function ResultScreen({ amount, greeting, role }: Props) {
+export default function ResultScreen({ amount, greeting, name, role }: Props) {
   const jackpot = isJackpot(amount);
 
   return (
@@ -62,7 +63,7 @@ export default function ResultScreen({ amount, greeting, role }: Props) {
         className="w-full bg-card rounded-2xl p-5 border-2 border-gold/30 shadow-gold/10"
       >
         <p className="text-xs text-muted-foreground mb-2 font-bold">
-          🤖 Lời chúc dành cho {role}:
+          🤖 Lời chúc dành cho {name} ({role}):
         </p>
         <p className="text-foreground font-semibold text-base leading-relaxed">
           {greeting}
@@ -77,7 +78,7 @@ export default function ResultScreen({ amount, greeting, role }: Props) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => {
-          const text = `🧧 Tôi vừa nhận được ${formatVND(amount)} lì xì!\n${greeting}\n\nVào nhận lì xì ngay!`;
+          const text = `🧧 ${name} vừa nhận được ${formatVND(amount)} lì xì!\n${greeting}\n\nVào nhận lì xì ngay!`;
           if (navigator.share) {
             navigator.share({ title: "Lì Xì May Mắn", text });
           } else {

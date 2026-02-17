@@ -3,10 +3,11 @@ import { formatVND } from "@/lib/lottery";
 
 interface Props {
   amount: number;
+  name: string;
   role: string;
 }
 
-export default function AlreadyPlayed({ amount, role }: Props) {
+export default function AlreadyPlayed({ amount, name, role }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -24,7 +25,7 @@ export default function AlreadyPlayed({ amount, role }: Props) {
         Bạn đã nhận lì xì rồi!
       </h2>
       <p className="text-muted-foreground text-sm">
-        Bạn ({role}) đã nhận được{" "}
+        {name} ({role}) đã nhận được{" "}
         <span className="font-black text-gold">{formatVND(amount)}</span>
       </p>
       <p className="text-muted-foreground text-sm">

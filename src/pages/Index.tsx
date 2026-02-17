@@ -10,37 +10,60 @@ import Leaderboard from "@/components/Leaderboard";
 import { useSound } from "@/hooks/useSound";
 import { getRandomAmount, isJackpot } from "@/lib/lottery";
 import { getGreeting } from "@/lib/greetings";
+import { addToLeaderboard } from "@/lib/leaderboard";
+import { getPlayStatus, savePlayStatus, hasPlayedSync, type PlayStatus } from "@/lib/playStatus";
 
 type Screen = "landing" | "scratch" | "result" | "already";
 
-const LS_KEY = "luckyMoney";
-
-function getSaved() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as { hasPlayed: boolean; amountWon: number; role: string };
-  } catch {
-    return null;
-  }
-}
-
 export default function Index() {
-  const saved = getSaved();
-  const [screen, setScreen] = useState<Screen>(saved?.hasPlayed ? "already" : "landing");
-  const [role, setRole] = useState(saved?.role || "");
-  const [amount, setAmount] = useState(saved?.amountWon || 0);
+  const [screen, setScreen] = useState<Screen>("landing");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+  const [amount, setAmount] = useState(0);
   const [greeting, setGreeting] = useState("");
+  const [playStatus, setPlayStatus] = useState<PlayStatus | null>(null);
+  const [loading, setLoading] = useState(true);
   const { play } = useSound();
 
+  // Load play status khi component mount
+  useEffect(() => {
+    const loadPlayStatus = async () => {
+      try {
+        // Check sync trước để hiển thị nhanh
+        if (hasPlayedSync()) {
+          const status = await getPlayStatus();
+          if (status?.hasPlayed) {
+            setPlayStatus(status);
+            setScreen("already");
+            setName(status.name);
+            setRole(status.role);
+            setAmount(status.amountWon);
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi load play status:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPlayStatus();
+  }, []);
+
   const handleStart = useCallback(
-    (inputRole: string) => {
-      // Re-check localStorage
-      if (getSaved()?.hasPlayed) {
+    async (inputName: string, inputRole: string) => {
+      // Re-check play status
+      const status = await getPlayStatus();
+      if (status?.hasPlayed) {
+        setPlayStatus(status);
         setScreen("already");
+        setName(status.name);
+        setRole(status.role);
+        setAmount(status.amountWon);
         return;
       }
       const amt = getRandomAmount();
+      setName(inputName);
       setRole(inputRole);
       setAmount(amt);
       setScreen("scratch");
@@ -49,12 +72,24 @@ export default function Index() {
     [play]
   );
 
-  const handleRevealed = useCallback(() => {
-    // Save to localStorage
-    localStorage.setItem(
-      LS_KEY,
-      JSON.stringify({ hasPlayed: true, amountWon: amount, role })
-    );
+  const handleRevealed = useCallback(async () => {
+    // Lưu trạng thái đã chơi vào Firebase (hoặc localStorage nếu Firebase chưa config)
+    await savePlayStatus(amount, name, role);
+    
+    // Cập nhật state
+    const status: PlayStatus = {
+      hasPlayed: true,
+      amountWon: amount,
+      name,
+      role,
+      timestamp: Date.now(),
+    };
+    setPlayStatus(status);
+
+    // Lưu vào leaderboard (async - không cần await vì không cần chờ)
+    addToLeaderboard(name, role, amount).catch((error) => {
+      console.error("Lỗi khi lưu leaderboard:", error);
+    });
 
     // Generate greeting
     setGreeting(getGreeting(role));
@@ -85,6 +120,18 @@ export default function Index() {
     setTimeout(() => setScreen("result"), jackpot ? 2500 : 1500);
   }, [amount, role, play]);
 
+  // Hiển thị loading khi đang check play status
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background relative flex flex-col items-center justify-center overflow-hidden py-8">
+        <FloatingLanterns />
+        <div className="relative z-10 w-full flex items-center justify-center">
+          <p className="text-muted-foreground">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background relative flex flex-col items-center justify-center overflow-hidden py-8">
       <FloatingLanterns />
@@ -101,13 +148,13 @@ export default function Index() {
           )}
           {screen === "result" && (
             <div key="result">
-              <ResultScreen amount={amount} greeting={greeting} role={role} />
+              <ResultScreen amount={amount} greeting={greeting} name={name} role={role} />
               <Leaderboard />
             </div>
           )}
           {screen === "already" && (
             <div key="already">
-              <AlreadyPlayed amount={saved?.amountWon || amount} role={saved?.role || role} />
+              <AlreadyPlayed amount={playStatus?.amountWon || amount} name={playStatus?.name || name} role={playStatus?.role || role} />
               <Leaderboard />
             </div>
           )}

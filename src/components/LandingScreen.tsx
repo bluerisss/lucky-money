@@ -2,12 +2,13 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 
 interface Props {
-  onStart: (role: string) => void;
+  onStart: (name: string, role: string) => void;
 }
 
-const ROLES = ["Developer", "HR", "DevOps", "Designer", "PM", "CEO", "Tester"];
+const ROLES = ["Developer", "HR", "DevOps", "Designer", "PM", "Tester", "BA", "Sales", "BOD"];
 
 export default function LandingScreen({ onStart }: Props) {
+  const [name, setName] = useState("");
   const [role, setRole] = useState("");
 
   return (
@@ -60,40 +61,55 @@ export default function LandingScreen({ onStart }: Props) {
         Cào thẻ nhận lì xì đầu năm!
       </motion.p>
 
-      {/* Role quick picks */}
+      {/* Name input */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="flex flex-wrap gap-2 justify-center"
+        className="w-full"
       >
-        {ROLES.map((r) => (
-          <button
-            key={r}
-            onClick={() => setRole(r)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
-              role === r
-                ? "bg-primary text-primary-foreground scale-105 shadow-crimson"
-                : "bg-card text-foreground border border-border hover:border-primary/50"
-            }`}
-          >
-            {r}
-          </button>
-        ))}
+        <label className="block text-sm font-semibold text-foreground mb-2 text-center">
+          Tên của bạn
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nhập tên của bạn..."
+          className="w-full px-4 py-3 rounded-xl bg-card border-2 border-border focus:border-primary focus:outline-none text-center font-semibold text-foreground placeholder:text-muted-foreground transition-colors"
+        />
       </motion.div>
 
-      {/* Custom input */}
+      {/* Role quick picks */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
         className="w-full"
       >
+        <label className="block text-sm font-semibold text-foreground mb-2 text-center">
+          Vai trò của bạn
+        </label>
+        <div className="flex flex-wrap gap-2 justify-center mb-3">
+          {ROLES.map((r) => (
+            <button
+              key={r}
+              onClick={() => setRole(r)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+                role === r
+                  ? "bg-primary text-primary-foreground scale-105 shadow-crimson"
+                  : "bg-card text-foreground border border-border hover:border-primary/50"
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
         <input
           type="text"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          placeholder="Nhập vai trò của bạn..."
+          placeholder="Hoặc nhập vai trò khác..."
           className="w-full px-4 py-3 rounded-xl bg-card border-2 border-border focus:border-primary focus:outline-none text-center font-semibold text-foreground placeholder:text-muted-foreground transition-colors"
         />
       </motion.div>
@@ -105,8 +121,8 @@ export default function LandingScreen({ onStart }: Props) {
         transition={{ delay: 0.8 }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        disabled={!role.trim()}
-        onClick={() => onStart(role.trim())}
+        disabled={!name.trim() || !role.trim()}
+        onClick={() => onStart(name.trim(), role.trim())}
         className="w-full py-4 rounded-xl font-black text-lg gradient-red-gold text-primary-foreground shadow-crimson disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         Nhận lì xì 🧧

@@ -145,7 +145,7 @@ export default function ScratchCard({ amount, onRevealed }: Props) {
                 jackpot ? "text-3xl" : "text-2xl"
               }`}
             >
-              {formatVND(amount)}
+              {amount > 0 ? formatVND(amount) : "Chúc bạn may mắn năm sau nhé =)))"}
             </p>
             {jackpot && (
               <p className="text-gold text-xs mt-1 animate-bounce-gentle">

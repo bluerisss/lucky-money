@@ -24,15 +24,25 @@ const GREETINGS: Record<string, string[]> = {
     "Năm mới stakeholder luôn hài lòng, meeting ngắn gọn! 🎯",
     "Chúc năm nay sprint nào cũng đạt velocity, retro toàn điều vui! 🏃",
   ],
-  ceo: [
-    "Chúc sếp năm mới revenue tăng gấp đôi, team vui vẻ! 📈",
-    "Năm mới funding dồi dào, vision thành hiện thực! 🚀",
-    "Chúc CEO năm nay IPO thành công, Forbes gọi tên! 💰",
-  ],
   tester: [
     "Chúc QA năm mới tìm bug nhanh, dev fix còn nhanh hơn! 🐛",
     "Năm mới test case pass hết, regression bằng 0! ✅",
     "Chúc tester năm nay automation chạy mượt, manual test biến mất! 🤖",
+  ],
+  ba: [
+    "Chúc BA năm mới requirement rõ ràng, stakeholder không đổi ý! 📝",
+    "Năm mới user story đầy đủ, sprint planning suôn sẻ! 📋",
+    "Chúc Business Analyst năm nay không ai nói 'cái này dễ mà' nữa! 😊",
+  ],
+  sales: [
+    "Chúc Sales năm mới deal nào cũng đóng, target vượt xa! 💰",
+    "Năm mới khách hàng gọi liên tục, commission đầy túi! 📞",
+    "Chúc Sales năm nay không deal nào bị hủy, contract ký dài dài! ✍️",
+  ],
+  bod: [
+    "Chúc BOD năm mới quyết định sáng suốt, công ty phát triển vượt bậc! 🎯",
+    "Năm mới strategy đúng hướng, team đồng lòng! 🚀",
+    "Chúc Board of Directors năm nay vision thành hiện thực, cổ đông hài lòng! 💼",
   ],
   default: [
     "Chúc bạn năm mới Tấn Tài Tấn Lộc, vạn sự như ý! 🧧",
