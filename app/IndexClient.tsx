@@ -30,6 +30,7 @@ export default function IndexClient() {
   const [loading, setLoading] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [quizAttempts, setQuizAttempts] = useState(5);
+  const [quizFailedFlag, setQuizFailedFlag] = useState(false);
   const { play } = useSound();
 
   // Đảm bảo component chỉ render sau khi mount (tránh hydration mismatch)
@@ -78,8 +79,9 @@ export default function IndexClient() {
     }
     setName(inputName);
     setRole(inputRole);
-    // Reset quiz attempts và chọn câu hỏi mới
+    // Reset quiz attempts, trạng thái quizFailed và chọn câu hỏi mới
     setQuizAttempts(5);
+    setQuizFailedFlag(false);
     setCurrentQuestion(getRandomQuestion());
     setScreen("quiz");
   }, []);
@@ -88,6 +90,7 @@ export default function IndexClient() {
     async (isCorrect: boolean) => {
       if (isCorrect) {
         // Trả lời đúng -> chuyển sang màn hình scratch
+        setQuizFailedFlag(false);
         const amt = getRandomAmount();
         setAmount(amt);
         setScreen("scratch");
@@ -98,26 +101,12 @@ export default function IndexClient() {
         setQuizAttempts(newAttempts);
 
         if (newAttempts <= 0) {
-          // Hết lượt -> lưu trạng thái quiz failed và hiển thị màn hình already
-          const failedStatus: PlayStatus = {
-            hasPlayed: true,
-            amountWon: 0,
-            name,
-            role,
-            timestamp: Date.now(),
-            quizFailed: true,
-          };
-          setPlayStatus(failedStatus);
-
-          // Lưu playStatus và leaderboard (await để đảm bảo lưu xong)
-          try {
-            await savePlayStatus(0, name, role, true);
-            await addToLeaderboard(name, role, 0, true);
-          } catch (error) {
-            console.error("Lỗi khi lưu trạng thái quiz failed:", error);
-          }
-
-          setScreen("already");
+          // Hết lượt nhưng vẫn cho cào lì xì, đánh dấu quizFailed
+          setQuizFailedFlag(true);
+          const amt = getRandomAmount();
+          setAmount(amt);
+          setScreen("scratch");
+          play("drumroll");
         } else {
           // Còn lượt -> chọn câu hỏi mới
           setCurrentQuestion(getRandomQuestion());
@@ -130,7 +119,7 @@ export default function IndexClient() {
   const handleRevealed = useCallback(
     async () => {
       // Lưu trạng thái đã chơi vào Firebase (hoặc localStorage nếu Firebase chưa config)
-      await savePlayStatus(amount, name, role, false);
+      await savePlayStatus(amount, name, role, quizFailedFlag);
 
       // Cập nhật state
       const status: PlayStatus = {
@@ -139,12 +128,12 @@ export default function IndexClient() {
         name,
         role,
         timestamp: Date.now(),
-        quizFailed: false,
+        quizFailed: quizFailedFlag,
       };
       setPlayStatus(status);
 
       // Lưu vào leaderboard (async - không cần await vì không cần chờ)
-      addToLeaderboard(name, role, amount, false).catch((error) => {
+      addToLeaderboard(name, role, amount, quizFailedFlag).catch((error) => {
         console.error("Lỗi khi lưu leaderboard:", error);
       });
 
@@ -176,7 +165,7 @@ export default function IndexClient() {
       // Transition to result
       setTimeout(() => setScreen("result"), jackpot ? 2500 : 1500);
     },
-    [amount, name, role, play]
+    [amount, name, role, play, quizFailedFlag]
   );
 
   // Hiển thị loading khi chưa mount hoặc đang check play status
@@ -204,7 +193,7 @@ export default function IndexClient() {
           )}
           {screen === "scratch" && (
             <div key="scratch" className="flex flex-col items-center">
-              <ScratchCard amount={amount} onRevealed={handleRevealed} />
+              <ScratchCard amount={amount} onRevealed={handleRevealed} quizFailed={quizFailedFlag} />
             </div>
           )}
           {screen === "result" && (

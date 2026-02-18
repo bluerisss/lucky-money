@@ -4,7 +4,7 @@
 export interface LeaderboardEntry {
   name: string; // Tên của người chơi
   role: string; // Vai trò của người chơi
-  amount: number; // Số tiền nhận được (0 nếu quizFailed)
+  amount: number; // Số tiền nhận được
   emoji: string; // Emoji tương ứng với role
   timestamp: number; // Thời gian chơi (để sort nếu cùng số tiền)
   quizFailed?: boolean; // true nếu trả lời sai hết 5 lượt
@@ -127,7 +127,7 @@ export async function addToLeaderboard(name: string, role: string, amount: numbe
   const newEntry: LeaderboardEntry = {
     name,
     role,
-    amount: quizFailed ? 0 : amount,
+    amount,
     emoji: getEmojiForRole(role),
     timestamp: Date.now(),
     quizFailed,

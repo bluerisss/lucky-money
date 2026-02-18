@@ -128,7 +128,9 @@ export default function Leaderboard() {
                   ? "text-gold" 
                   : "text-crimson"
             }`}>
-              {entry.quizFailed ? "❌ Trả lời sai nên nhịn :v" : formatVND(entry.amount)}
+              {entry.quizFailed
+                ? `${formatVND(entry.amount)} (Suýt nhịn vì trả lời sai)`
+                : formatVND(entry.amount)}
             </span>
           </motion.div>
         ))}

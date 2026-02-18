@@ -17,20 +17,21 @@ export default function AlreadyPlayed({ amount, name, role, quizFailed = false }
         className="flex flex-col items-center gap-5 px-4 max-w-md mx-auto text-center"
       >
         <motion.div
-          animate={{ rotate: [0, -10, 10, 0] }}
+          animate={{ rotate: [0, 10, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="text-6xl"
         >
-          😔
+          🎉
         </motion.div>
         <h2 className="text-xl font-black text-crimson">
-          Rất tiếc! Bạn đã trả lời sai hết 5 lượt
+          Nhận lì xì rồi còn đòi nhận nữa à? Tham lam!
         </h2>
         <p className="text-muted-foreground text-sm">
-          {name} ({role}) không thể nhận lì xì vì trả lời sai câu đố
+          {name} ({role}) đã nhận được{" "}
+          <span className="font-black text-gold">{formatVND(amount)}</span>
         </p>
         <p className="text-muted-foreground text-sm">
-          Hãy học thêm về Tết Việt Nam và thử lại năm sau nhé! 🧧✨
+          Đợt trước trả lời sai mà vẫn được lì xì đó nha, đừng đòi thêm 😏
         </p>
       </motion.div>
     );

@@ -5,9 +5,10 @@ import { formatVND, isJackpot } from "@/lib/lottery";
 interface Props {
   amount: number;
   onRevealed: () => void;
+  quizFailed?: boolean;
 }
 
-export default function ScratchCard({ amount, onRevealed }: Props) {
+export default function ScratchCard({ amount, onRevealed, quizFailed = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scratching, setScratching] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -90,7 +91,7 @@ export default function ScratchCard({ amount, onRevealed }: Props) {
         if (imageData.data[i] === 0) transparent++;
       }
       const percent = transparent / (WIDTH * HEIGHT);
-      if (percent > 0.6 && !hasCalledReveal.current) {
+      if (percent > 0.5 && !hasCalledReveal.current) {
         hasCalledReveal.current = true;
         setRevealed(true);
         onRevealed();
@@ -125,8 +126,12 @@ export default function ScratchCard({ amount, onRevealed }: Props) {
       transition={{ duration: 0.6, type: "spring" }}
       className="flex flex-col items-center gap-4"
     >
+      {quizFailed && (
+        <h1 className="text-xl font-black text-crimson text-center">
+          Trả lời sai rồi nhưng vì tôi là một người rộng lượng nên năm mới vẫn cho bạn cơ hội 🧧
+        </h1>
+      )}
       <h2 className="text-xl font-black text-crimson">🎫 Cào thẻ trúng thưởng!</h2>
-
       <div
         className={`relative rounded-2xl overflow-hidden ${
           jackpot && revealed ? "glow-jackpot" : "shadow-crimson"
@@ -135,16 +140,9 @@ export default function ScratchCard({ amount, onRevealed }: Props) {
       >
         {/* Prize underneath */}
         <div className="absolute inset-0 gradient-red-gold flex flex-col items-center justify-center">
-          <motion.div
-            animate={revealed ? { scale: [1, 1.2, 1] } : {}}
-            transition={{ duration: 0.5 }}
-          >
+          <motion.div animate={revealed ? { scale: [1, 1.2, 1] } : {}} transition={{ duration: 0.5 }}>
             <p className="text-gold text-sm font-bold mb-1">🎉 Bạn nhận được</p>
-            <p
-              className={`font-black text-primary-foreground ${
-                jackpot ? "text-3xl" : "text-2xl"
-              }`}
-            >
+            <p className={`font-black text-primary-foreground ${jackpot ? "text-3xl" : "text-2xl"}`}>
               {amount > 0 ? formatVND(amount) : "Chúc bạn may mắn năm sau nhé =)))"}
             </p>
             {jackpot && (
