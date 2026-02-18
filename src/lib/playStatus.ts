@@ -7,6 +7,7 @@ export interface PlayStatus {
   name: string;
   role: string;
   timestamp: number;
+  quizFailed?: boolean; // true nếu trả lời sai hết 5 lượt
 }
 
 const LS_KEY = "luckyMoney";
@@ -15,8 +16,14 @@ const FIREBASE_PATH = "playedUsers"; // Path trong Firebase Realtime Database
 /**
  * Tạo hoặc lấy User ID từ localStorage
  * Mỗi browser sẽ có một ID duy nhất
+ * Chỉ chạy trên client (browser)
  */
 function getUserId(): string {
+  if (typeof window === "undefined") {
+    // Server-side: return temporary ID (sẽ được tạo lại trên client)
+    return `temp_${Date.now()}`;
+  }
+  
   const USER_ID_KEY = "luckyMoneyUserId";
   let userId = localStorage.getItem(USER_ID_KEY);
   
@@ -34,11 +41,18 @@ function getUserId(): string {
  */
 function isFirebaseConfigured(): boolean {
   try {
-    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-    const databaseURL = import.meta.env.VITE_FIREBASE_DATABASE_URL;
-    return !!apiKey && !!databaseURL && 
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const databaseURL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+    const isConfigured = !!apiKey && !!databaseURL && 
            apiKey !== "YOUR_API_KEY" && 
-           databaseURL !== "YOUR_DATABASE_URL";
+           databaseURL !== "YOUR_DATABASE_URL" &&
+           !databaseURL.includes("YOUR_DATABASE_URL");
+    
+    if (!isConfigured) {
+      console.warn("⚠️ Firebase chưa được cấu hình. Đang dùng localStorage.");
+    }
+    
+    return isConfigured;
   } catch {
     return false;
   }
@@ -46,8 +60,10 @@ function isFirebaseConfigured(): boolean {
 
 /**
  * Lấy trạng thái đã chơi từ localStorage (fallback)
+ * Chỉ chạy trên client (browser)
  */
 function getPlayStatusLocal(): PlayStatus | null {
+  if (typeof window === "undefined") return null; // Server-side: return null
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return null;
@@ -58,6 +74,7 @@ function getPlayStatusLocal(): PlayStatus | null {
       name: data.name || "",
       role: data.role || "",
       timestamp: data.timestamp || Date.now(),
+      quizFailed: data.quizFailed || false,
     };
   } catch {
     return null;
@@ -66,8 +83,10 @@ function getPlayStatusLocal(): PlayStatus | null {
 
 /**
  * Lưu trạng thái đã chơi vào localStorage (fallback)
+ * Chỉ chạy trên client (browser)
  */
 function savePlayStatusLocal(status: PlayStatus): void {
+  if (typeof window === "undefined") return; // Server-side: skip
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(status));
   } catch (error) {
@@ -84,7 +103,6 @@ export async function getPlayStatus(): Promise<PlayStatus | null> {
   }
 
   try {
-    // @ts-ignore - Firebase có thể chưa được cài đặt
     const firebaseDb = await import("firebase/database").catch(() => null);
     const firebaseApp = await import("./firebase").catch(() => null);
     
@@ -113,10 +131,12 @@ export async function getPlayStatus(): Promise<PlayStatus | null> {
       name: data.name || "",
       role: data.role || "",
       timestamp: data.timestamp || Date.now(),
+      quizFailed: data.quizFailed || false,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Kiểm tra nếu là lỗi permission, log và fallback
-    if (error?.code === "PERMISSION_DENIED" || error?.message?.includes("Permission denied")) {
+    const firebaseError = error as { code?: string; message?: string };
+    if (firebaseError?.code === "PERMISSION_DENIED" || firebaseError?.message?.includes("Permission denied")) {
       console.warn("⚠️ Firebase Database Rules chưa được cấu hình cho playedUsers. Đang dùng localStorage.");
     } else {
       console.error("Lỗi khi lấy trạng thái chơi từ Firebase:", error);
@@ -129,13 +149,14 @@ export async function getPlayStatus(): Promise<PlayStatus | null> {
 /**
  * Lưu trạng thái đã chơi vào Firebase hoặc localStorage
  */
-export async function savePlayStatus(amountWon: number, name: string, role: string): Promise<void> {
+export async function savePlayStatus(amountWon: number, name: string, role: string, quizFailed: boolean = false): Promise<void> {
   const status: PlayStatus = {
     hasPlayed: true,
     amountWon,
     name,
     role,
     timestamp: Date.now(),
+    quizFailed,
   };
 
   if (!isFirebaseConfigured()) {
@@ -144,11 +165,11 @@ export async function savePlayStatus(amountWon: number, name: string, role: stri
   }
 
   try {
-    // @ts-ignore - Firebase có thể chưa được cài đặt
     const firebaseDb = await import("firebase/database").catch(() => null);
     const firebaseApp = await import("./firebase").catch(() => null);
     
     if (!firebaseDb || !firebaseApp) {
+      console.warn("⚠️ Không thể import Firebase modules. Đang dùng localStorage.");
       savePlayStatusLocal(status);
       return;
     }
@@ -157,15 +178,20 @@ export async function savePlayStatus(amountWon: number, name: string, role: stri
     const { database } = firebaseApp;
     
     if (!database) {
+      console.warn("⚠️ Firebase database chưa được khởi tạo. Đang dùng localStorage.");
       savePlayStatusLocal(status);
       return;
     }
 
     const userId = getUserId();
-    await set(ref(database, `${FIREBASE_PATH}/${userId}`), status);
-  } catch (error: any) {
+    const path = `${FIREBASE_PATH}/${userId}`;
+    console.log("💾 Đang lưu playStatus vào Firebase:", path, status);
+    await set(ref(database, path), status);
+    console.log("✅ Đã lưu playStatus vào Firebase thành công");
+  } catch (error: unknown) {
     // Kiểm tra nếu là lỗi permission, log và fallback
-    if (error?.code === "PERMISSION_DENIED" || error?.message?.includes("Permission denied")) {
+    const firebaseError = error as { code?: string; message?: string };
+    if (firebaseError?.code === "PERMISSION_DENIED" || firebaseError?.message?.includes("Permission denied")) {
       console.warn("⚠️ Firebase Database Rules chưa được cấu hình cho playedUsers. Đang lưu vào localStorage.");
     } else {
       console.error("Lỗi khi lưu trạng thái chơi vào Firebase:", error);

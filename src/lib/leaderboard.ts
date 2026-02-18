@@ -4,9 +4,10 @@
 export interface LeaderboardEntry {
   name: string; // Tên của người chơi
   role: string; // Vai trò của người chơi
-  amount: number; // Số tiền nhận được
+  amount: number; // Số tiền nhận được (0 nếu quizFailed)
   emoji: string; // Emoji tương ứng với role
   timestamp: number; // Thời gian chơi (để sort nếu cùng số tiền)
+  quizFailed?: boolean; // true nếu trả lời sai hết 5 lượt
   id?: string; // ID từ Firebase (nếu có)
 }
 
@@ -46,11 +47,13 @@ function getEmojiForRole(role: string): string {
  */
 function isFirebaseConfigured(): boolean {
   try {
-    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-    const databaseURL = import.meta.env.VITE_FIREBASE_DATABASE_URL;
-    return !!apiKey && !!databaseURL && 
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const databaseURL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+    const isConfigured = !!apiKey && !!databaseURL && 
            apiKey !== "YOUR_API_KEY" && 
-           databaseURL !== "YOUR_DATABASE_URL";
+           databaseURL !== "YOUR_DATABASE_URL" &&
+           !databaseURL.includes("YOUR_DATABASE_URL");
+    return isConfigured;
   } catch {
     return false;
   }
@@ -58,8 +61,10 @@ function isFirebaseConfigured(): boolean {
 
 /**
  * Lấy danh sách leaderboard từ localStorage (fallback)
+ * Chỉ chạy trên client (browser)
  */
 function getLeaderboardLocal(): LeaderboardEntry[] {
+  if (typeof window === "undefined") return []; // Server-side: return empty array
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
     if (!raw) return [];
@@ -69,17 +74,12 @@ function getLeaderboardLocal(): LeaderboardEntry[] {
   }
 }
 
-/**
- * Lấy danh sách leaderboard từ Firebase hoặc localStorage
- */
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   if (!isFirebaseConfigured()) {
     return getLeaderboardLocal();
   }
 
   try {
-    // Dynamic import để tránh lỗi nếu Firebase chưa được cài
-    // @ts-ignore - Firebase có thể chưa được cài đặt
     const firebaseDb = await import("firebase/database").catch(() => null);
     const firebaseApp = await import("./firebase").catch(() => null);
     
@@ -102,13 +102,14 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
     const data = snapshot.val();
     // Convert Firebase object thành array
-    return Object.entries(data || {}).map(([id, entry]: [string, any]) => ({
-      ...entry,
+    return Object.entries(data || {}).map(([id, entry]: [string, unknown]) => ({
+      ...(entry as LeaderboardEntry),
       id,
     })) as LeaderboardEntry[];
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Kiểm tra nếu là lỗi permission, log và fallback
-    if (error?.code === "PERMISSION_DENIED" || error?.message?.includes("Permission denied")) {
+    const firebaseError = error as { code?: string; message?: string };
+    if (firebaseError?.code === "PERMISSION_DENIED" || firebaseError?.message?.includes("Permission denied")) {
       console.warn("⚠️ Firebase Database Rules chưa được cấu hình. Đang dùng localStorage làm fallback.");
       console.warn("💡 Hãy cấu hình Database Rules trong Firebase Console để sử dụng leaderboard chung.");
     } else {
@@ -122,39 +123,19 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 /**
  * Thêm entry mới vào leaderboard (Firebase hoặc localStorage)
  */
-export async function addToLeaderboard(name: string, role: string, amount: number): Promise<void> {
+export async function addToLeaderboard(name: string, role: string, amount: number, quizFailed: boolean = false): Promise<void> {
   const newEntry: LeaderboardEntry = {
     name,
     role,
-    amount,
+    amount: quizFailed ? 0 : amount,
     emoji: getEmojiForRole(role),
     timestamp: Date.now(),
+    quizFailed,
   };
 
   if (!isFirebaseConfigured()) {
-    // Fallback: lưu vào localStorage
-    const entries = getLeaderboardLocal();
-    entries.unshift(newEntry);
-    if (entries.length > MAX_ENTRIES) {
-      entries.splice(MAX_ENTRIES);
-    }
-    try {
-      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
-    } catch (error) {
-      console.error("Không thể lưu leaderboard:", error);
-    }
-    return;
-  }
-
-  // Lưu vào Firebase
-  try {
-    // Dynamic import để tránh lỗi nếu Firebase chưa được cài
-    // @ts-ignore - Firebase có thể chưa được cài đặt
-    const firebaseDb = await import("firebase/database").catch(() => null);
-    const firebaseApp = await import("./firebase").catch(() => null);
-    
-    if (!firebaseDb || !firebaseApp) {
-      // Fallback về localStorage
+    // Fallback: lưu vào localStorage (chỉ trên client)
+    if (typeof window !== "undefined") {
       const entries = getLeaderboardLocal();
       entries.unshift(newEntry);
       if (entries.length > MAX_ENTRIES) {
@@ -162,8 +143,33 @@ export async function addToLeaderboard(name: string, role: string, amount: numbe
       }
       try {
         localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
-      } catch (e) {
-        console.error("Không thể lưu leaderboard:", e);
+      } catch (error) {
+        console.error("Không thể lưu leaderboard:", error);
+      }
+    }
+    return;
+  }
+
+  // Lưu vào Firebase
+  try {
+    // Dynamic import để tránh lỗi nếu Firebase chưa được cài
+    const firebaseDb = await import("firebase/database").catch(() => null);
+    const firebaseApp = await import("./firebase").catch(() => null);
+    
+    if (!firebaseDb || !firebaseApp) {
+      console.warn("⚠️ Không thể import Firebase modules. Đang dùng localStorage.");
+      // Fallback về localStorage (chỉ trên client)
+      if (typeof window !== "undefined") {
+        const entries = getLeaderboardLocal();
+        entries.unshift(newEntry);
+        if (entries.length > MAX_ENTRIES) {
+          entries.splice(MAX_ENTRIES);
+        }
+        try {
+          localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+        } catch (e) {
+          console.error("Không thể lưu leaderboard:", e);
+        }
       }
       return;
     }
@@ -172,23 +178,28 @@ export async function addToLeaderboard(name: string, role: string, amount: numbe
     const { database } = firebaseApp;
     
     if (!database) {
-      // Fallback về localStorage
-      const entries = getLeaderboardLocal();
-      entries.unshift(newEntry);
-      if (entries.length > MAX_ENTRIES) {
-        entries.splice(MAX_ENTRIES);
-      }
-      try {
-        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
-      } catch (e) {
-        console.error("Không thể lưu leaderboard:", e);
+      console.warn("⚠️ Firebase database chưa được khởi tạo. Đang dùng localStorage.");
+      // Fallback về localStorage (chỉ trên client)
+      if (typeof window !== "undefined") {
+        const entries = getLeaderboardLocal();
+        entries.unshift(newEntry);
+        if (entries.length > MAX_ENTRIES) {
+          entries.splice(MAX_ENTRIES);
+        }
+        try {
+          localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+        } catch (e) {
+          console.error("Không thể lưu leaderboard:", e);
+        }
       }
       return;
     }
     
     // Thêm entry mới
+    console.log("💾 Đang lưu leaderboard entry vào Firebase:", newEntry);
     const newEntryRef = push(ref(database, FIREBASE_PATH));
     await set(newEntryRef, newEntry);
+    console.log("✅ Đã lưu leaderboard entry vào Firebase thành công");
 
     // Giới hạn số lượng entries (giữ lại top MAX_ENTRIES)
     // Lấy tất cả entries và sort trong code để tránh cần index trong Rules
@@ -197,8 +208,8 @@ export async function addToLeaderboard(name: string, role: string, amount: numbe
     
     if (allSnapshot.exists()) {
       const allData = allSnapshot.val();
-      const entries = Object.entries(allData || {}).map(([id, entry]: [string, any]) => ({
-        ...entry,
+      const entries = Object.entries(allData || {}).map(([id, entry]: [string, unknown]) => ({
+        ...(entry as LeaderboardEntry),
         id,
       })) as LeaderboardEntry[];
 
@@ -216,24 +227,27 @@ export async function addToLeaderboard(name: string, role: string, amount: numbe
         }
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Kiểm tra nếu là lỗi permission, log và fallback
-    if (error?.code === "PERMISSION_DENIED" || error?.message?.includes("Permission denied")) {
+    const firebaseError = error as { code?: string; message?: string };
+    if (firebaseError?.code === "PERMISSION_DENIED" || firebaseError?.message?.includes("Permission denied")) {
       console.warn("⚠️ Firebase Database Rules chưa được cấu hình. Đang lưu vào localStorage.");
       console.warn("💡 Hãy cấu hình Database Rules trong Firebase Console để sử dụng leaderboard chung.");
     } else {
       console.error("Lỗi khi lưu leaderboard vào Firebase:", error);
     }
-    // Fallback về localStorage
-    const entries = getLeaderboardLocal();
-    entries.unshift(newEntry);
-    if (entries.length > MAX_ENTRIES) {
-      entries.splice(MAX_ENTRIES);
-    }
-    try {
-      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
-    } catch (e) {
-      console.error("Không thể lưu leaderboard:", e);
+    // Fallback về localStorage (chỉ trên client)
+    if (typeof window !== "undefined") {
+      const entries = getLeaderboardLocal();
+      entries.unshift(newEntry);
+      if (entries.length > MAX_ENTRIES) {
+        entries.splice(MAX_ENTRIES);
+      }
+      try {
+        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+      } catch (e) {
+        console.error("Không thể lưu leaderboard:", e);
+      }
     }
   }
 }
@@ -242,13 +256,14 @@ export async function addToLeaderboard(name: string, role: string, amount: numbe
  * Xóa toàn bộ leaderboard (utility function, có thể dùng để reset)
  */
 export async function clearLeaderboard(): Promise<void> {
+  if (typeof window === "undefined") return; // Server-side: skip
+  
   if (!isFirebaseConfigured()) {
     localStorage.removeItem(LEADERBOARD_KEY);
     return;
   }
 
   try {
-    // @ts-ignore - Firebase có thể chưa được cài đặt
     const firebaseDb = await import("firebase/database").catch(() => null);
     const firebaseApp = await import("./firebase").catch(() => null);
     
@@ -262,7 +277,9 @@ export async function clearLeaderboard(): Promise<void> {
     await set(ref(database, FIREBASE_PATH), null);
   } catch (error) {
     console.error("Lỗi khi xóa leaderboard:", error);
-    localStorage.removeItem(LEADERBOARD_KEY);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(LEADERBOARD_KEY);
+    }
   }
 }
 
@@ -273,6 +290,9 @@ export async function getTopEntries(limit: number = 10): Promise<LeaderboardEntr
   const entries = await getLeaderboard();
   return entries
     .sort((a, b) => {
+      // Quiz failed entries xuống cuối
+      if (a.quizFailed && !b.quizFailed) return 1;
+      if (!a.quizFailed && b.quizFailed) return -1;
       // Sort theo amount giảm dần, nếu cùng amount thì sort theo timestamp (mới hơn trước)
       if (b.amount !== a.amount) {
         return b.amount - a.amount;
@@ -297,9 +317,7 @@ export function subscribeToLeaderboard(
   let unsubscribe: (() => void) | null = null;
 
   // Dynamic import để tránh lỗi nếu Firebase chưa được cài
-  // @ts-ignore - Firebase có thể chưa được cài đặt
   Promise.all([
-    // @ts-ignore - Firebase có thể chưa được cài đặt
     import("firebase/database").catch(() => null),
     import("./firebase").catch(() => null),
   ]).then(([firebaseDb, firebaseApp]) => {
@@ -319,8 +337,8 @@ export function subscribeToLeaderboard(
         }
 
         const data = snapshot.val();
-        const entries = Object.entries(data || {}).map(([id, entry]: [string, any]) => ({
-          ...entry,
+        const entries = Object.entries(data || {}).map(([id, entry]: [string, unknown]) => ({
+          ...(entry as LeaderboardEntry),
           id,
         })) as LeaderboardEntry[];
 

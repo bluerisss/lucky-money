@@ -121,8 +121,14 @@ export default function Leaderboard() {
             <span className="flex-1 text-sm font-semibold text-foreground">
               {entry.name} {entry.role && `(${entry.role})`}
             </span>
-            <span className={`text-sm font-black ${isJackpot(entry.amount) ? "text-gold" : "text-crimson"}`}>
-              {formatVND(entry.amount)}
+            <span className={`text-sm font-black ${
+              entry.quizFailed 
+                ? "text-red-500" 
+                : isJackpot(entry.amount) 
+                  ? "text-gold" 
+                  : "text-crimson"
+            }`}>
+              {entry.quizFailed ? "❌ Trả lời sai nên nhịn :v" : formatVND(entry.amount)}
             </span>
           </motion.div>
         ))}

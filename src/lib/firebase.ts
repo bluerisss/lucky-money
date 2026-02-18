@@ -7,20 +7,25 @@ import { getDatabase, type Database } from "firebase/database";
 
 // Firebase Web App Configuration
 // Lấy từ Firebase Console > Project Settings > Your apps > Config
-// Hoặc dùng environment variables trong file .env
+// Hoặc dùng environment variables trong file .env.local
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "luckymoney-ed093.firebaseapp.com",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://luckymoney-ed093-default-rtdb.firebaseio.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "luckymoney-ed093",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "luckymoney-ed093.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "luckymoney-ed093.firebaseapp.com",
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || "https://luckymoney-ed093-default-rtdb.firebaseio.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "luckymoney-ed093",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "luckymoney-ed093.appspot.com",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "YOUR_APP_ID",
 };
 
 // Kiểm tra xem Firebase đã được config chưa
-const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY" && 
-                     firebaseConfig.databaseURL !== "YOUR_DATABASE_URL";
+// Phải có cả apiKey và databaseURL, và không phải là giá trị placeholder
+const isConfigured = 
+  firebaseConfig.apiKey && 
+  firebaseConfig.apiKey !== "YOUR_API_KEY" &&
+  firebaseConfig.databaseURL && 
+  firebaseConfig.databaseURL !== "YOUR_DATABASE_URL" &&
+  !firebaseConfig.databaseURL.includes("YOUR_DATABASE_URL");
 
 let app: FirebaseApp | null = null;
 let database: Database | null = null;
@@ -32,9 +37,13 @@ if (isConfigured) {
     
     // Initialize Realtime Database
     database = getDatabase(app);
+    console.log("✅ Firebase đã được khởi tạo thành công");
   } catch (error) {
-    console.error("Lỗi khi khởi tạo Firebase:", error);
+    console.error("❌ Lỗi khi khởi tạo Firebase:", error);
   }
+} else {
+  console.warn("⚠️ Firebase chưa được cấu hình. Vui lòng thêm environment variables trong .env.local");
+  console.warn("   Cần: NEXT_PUBLIC_FIREBASE_API_KEY và NEXT_PUBLIC_FIREBASE_DATABASE_URL");
 }
 
 // Export database và app (có thể null nếu chưa config)

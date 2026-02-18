@@ -10,16 +10,21 @@ interface Lantern {
 }
 
 export default function FloatingLanterns() {
-  const [lanterns] = useState<Lantern[]>(() =>
-    Array.from({ length: 12 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      size: 16 + Math.random() * 24,
-      delay: Math.random() * 8,
-      duration: 10 + Math.random() * 10,
-      opacity: 0.15 + Math.random() * 0.2,
-    }))
-  );
+  const [lanterns, setLanterns] = useState<Lantern[]>([]);
+
+  // Chỉ generate random values sau khi mount (tránh hydration mismatch)
+  useEffect(() => {
+    setLanterns(
+      Array.from({ length: 12 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        size: 16 + Math.random() * 24,
+        delay: Math.random() * 8,
+        duration: 10 + Math.random() * 10,
+        opacity: 0.15 + Math.random() * 0.2,
+      }))
+    );
+  }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

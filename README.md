@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+## Lucky Red Envelope – Next.js Edition 🧧
 
-## Project info
+Ứng dụng mini-game lì xì đầu năm: người chơi chọn tên + role, trả lời câu đố về Tết, nếu vượt qua mới được cào thẻ nhận lì xì. Kết quả được lưu chung qua Firebase Realtime Database (nếu cấu hình), kèm leaderboard.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+### Công nghệ sử dụng
 
-## How can I edit this code?
+- **Next.js 14 (App Router, TypeScript)**
+- **React** + **framer-motion** (animation)
+- **Tailwind CSS** + **shadcn-ui**
+- **Firebase Realtime Database** (tùy chọn, cho shared leaderboard & play status)
 
-There are several ways of editing your application.
+### Chuẩn bị môi trường
 
-**Use Lovable**
+- Node.js LTS (khuyến nghị dùng qua `nvm`)
+- `npm` hoặc `yarn` (project hiện dùng `npm`)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Cài đặt & chạy dev
 
-Changes made via Lovable will be committed automatically to this repo.
+```bash
+# Cài dependencies
+npm install
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Chạy dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Ứng dụng mặc định chạy ở `http://localhost:3000`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Cấu hình Firebase (khuyến nghị)
 
-**Use GitHub Codespaces**
+Nếu không cấu hình Firebase, app vẫn chạy được nhưng sẽ fallback về `localStorage` (leaderboard và play status chỉ trên máy hiện tại).
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Tạo file `.env.local` ở root (cùng cấp với `package.json`)
+2. Điền thông tin từ Firebase Console (Project Settings → Your apps → Web app config):
 
-## What technologies are used for this project?
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project_id-default-rtdb.firebaseio.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
 
-This project is built with:
+3. Cấu hình **Realtime Database Rules** để cho phép đọc/ghi phù hợp cho:
+   - `leaderboard`
+   - `playedUsers`
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Lint & build
 
-## How can I deploy this project?
+```bash
+# Kiểm tra lint
+npm run lint
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+# Build production
+npm run build
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Ghi chú kiến trúc
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `app/IndexClient.tsx`: toàn bộ flow game (landing → quiz → scratch → result/already)
+- `src/lib/*`: logic business (lottery, leaderboard, playStatus, Firebase, questions, greetings)
+- `src/components/*`: UI components (ScratchCard, LandingScreen, ResultScreen, QuizScreen, Leaderboard, v.v.)
