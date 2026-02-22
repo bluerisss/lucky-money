@@ -111,7 +111,7 @@ export const QUESTIONS: Question[] = [
   {
     question: "Món ăn nào là món truyền thống ngày Tết?",
     options: ["Bánh chưng", "Beefsteak cháy cạnh", "Pizza", "Sashimi cá hồi"],
-    correctAnswer: 2,
+    correctAnswer: 0,
     explanation: "Bánh chưng là món truyền thống Tết Việt Nam",
   },
   {
@@ -149,10 +149,55 @@ export const QUESTIONS: Question[] = [
   },
 ];
 
+// Câu hỏi riêng dành cho BOD (Board of Directors)
+export const BOD_QUESTIONS: Question[] = [
+  {
+    question: "Món quà Tết nào BOD nên tặng nhân viên?",
+    options: [
+      "Bánh kẹo truyền thống",
+      "Lì xì may mắn",
+      "Lời chúc Tết chân thành",
+      "Cả 3 đều ý nghĩa, nhưng lì xì + lời chúc là combo hoàn hảo!",
+    ],
+    correctAnswer: 3,
+    explanation: "Lì xì là văn hóa, lời chúc là tình cảm. Kết hợp cả hai là tuyệt vời nhất! 🧧",
+  },
+  {
+    question: "BOD nên lì xì nhân viên bao nhiêu là 'chuẩn bài'?",
+    options: [
+      "Tùy theo performance review",
+      "Tùy theo số năm làm việc",
+      "Tùy theo... tình hình tài chính công ty",
+      "Lì xì là tình cảm, không nên tính toán!",
+    ],
+    correctAnswer: 3,
+    explanation: "Lì xì là văn hóa, là tình cảm. Nhưng nhiều vẫn tốt hơn ạ 🧧",
+  },
+  {
+    question: "Câu nói nào của BOD dễ tạo động lực nhất cho nhân viên?",
+    options: [
+      '"Năm nay chúng ta sẽ làm việc hiệu quả hơn"',
+      '"Anh/chị tin team sẽ đạt được mục tiêu"',
+      '"Cảm ơn mọi người đã đồng hành, chúng ta cùng phát triển!"',
+      '"Cả 3 đều tốt, nhưng lời cảm ơn chân thành luôn có sức mạnh lớn nhất"',
+    ],
+    correctAnswer: 3,
+    explanation: "Lời cảm ơn chân thành từ lãnh đạo luôn là động lực lớn nhất! 💪",
+  },
+];
+
 /**
  * Lấy một câu hỏi ngẫu nhiên
+ * @param role - Role của người chơi (optional), nếu là BOD thì sẽ lấy từ cả câu hỏi thường và câu hỏi riêng
  */
-export function getRandomQuestion(): Question {
+export function getRandomQuestion(role?: string): Question {
+  // Kiểm tra nếu role là BOD thì gộp cả câu hỏi thường và câu hỏi riêng
+  if (role && role.toLowerCase().includes("bod")) {
+    const allQuestions = [...QUESTIONS, ...BOD_QUESTIONS];
+    const randomIndex = Math.floor(Math.random() * allQuestions.length);
+    return allQuestions[randomIndex];
+  }
+  // Mặc định dùng câu hỏi thường
   const randomIndex = Math.floor(Math.random() * QUESTIONS.length);
   return QUESTIONS[randomIndex];
 }

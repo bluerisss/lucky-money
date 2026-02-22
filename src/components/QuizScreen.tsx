@@ -33,7 +33,7 @@ export default function QuizScreen({ question, attemptsLeft, onAnswer }: Props) 
       // Reset state
       setSelectedAnswer(null);
       setShowResult(false);
-    }, 2000);
+    }, 3000);
   };
 
   return (

@@ -82,7 +82,7 @@ export default function IndexClient() {
     // Reset quiz attempts, trạng thái quizFailed và chọn câu hỏi mới
     setQuizAttempts(5);
     setQuizFailedFlag(false);
-    setCurrentQuestion(getRandomQuestion());
+    setCurrentQuestion(getRandomQuestion(inputRole));
     setScreen("quiz");
   }, []);
 
@@ -109,11 +109,11 @@ export default function IndexClient() {
           play("drumroll");
         } else {
           // Còn lượt -> chọn câu hỏi mới
-          setCurrentQuestion(getRandomQuestion());
+          setCurrentQuestion(getRandomQuestion(role));
         }
       }
     },
-    [quizAttempts, name, role, play]
+    [quizAttempts, play, role]
   );
 
   const handleRevealed = useCallback(
@@ -168,6 +168,14 @@ export default function IndexClient() {
     [amount, name, role, play, quizFailedFlag]
   );
 
+  const handleBankAccountSaved = useCallback(async () => {
+    // Reload play status để lấy thông tin bankAccount mới
+    const status = await getPlayStatus();
+    if (status) {
+      setPlayStatus(status);
+    }
+  }, []);
+
   // Hiển thị loading khi chưa mount hoặc đang check play status
   // Đảm bảo server và client render giống nhau
   if (!mounted || loading) {
@@ -198,7 +206,15 @@ export default function IndexClient() {
           )}
           {screen === "result" && (
             <div key="result">
-              <ResultScreen amount={amount} greeting={greeting} name={name} role={role} />
+              <ResultScreen
+                amount={amount}
+                greeting={greeting}
+                name={name}
+                role={role}
+                bankAccount={playStatus?.bankAccount}
+                paymentSent={playStatus?.paymentSent || false}
+                onBankAccountSaved={handleBankAccountSaved}
+              />
               <Leaderboard />
             </div>
           )}
@@ -209,6 +225,9 @@ export default function IndexClient() {
                 name={playStatus?.name || name}
                 role={playStatus?.role || role}
                 quizFailed={playStatus?.quizFailed || false}
+                bankAccount={playStatus?.bankAccount}
+                paymentSent={playStatus?.paymentSent || false}
+                onBankAccountUpdated={handleBankAccountSaved}
               />
               <Leaderboard />
             </div>

@@ -55,7 +55,7 @@ export default function Leaderboard() {
         className="w-full max-w-md mx-auto mt-4 px-4"
       >
         <h3 className="text-center text-sm font-black text-crimson mb-3">
-          🏆 Phong Thần Bảng
+          💰 Bảng Xếp Hạng Nhân Phẩm
         </h3>
         <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm p-6 text-center">
           <p className="text-sm text-muted-foreground">Đang tải...</p>
@@ -101,7 +101,7 @@ export default function Leaderboard() {
       className="w-full max-w-md mx-auto mt-4 px-4"
     >
       <h3 className="text-center text-sm font-black text-crimson mb-3">
-        🏆 Phong Thần Bảng
+        🏆 Bảng Xếp Hạng Nhân Phẩm
       </h3>
       <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
         {sorted.map((entry, i) => (
