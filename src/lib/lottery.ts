@@ -1,10 +1,10 @@
 // Weighted random money amount in VND
 const AMOUNTS: { value: number; weight: number }[] = [
   { value: 0, weight: 5 },
-  { value: 10000, weight: 10 },
-  { value: 20000, weight: 15 },
-  { value: 50000, weight: 20 },
-  { value: 100000, weight: 15 },
+  { value: 10000, weight: 20 },
+  { value: 20000, weight: 50 },
+  { value: 50000, weight: 15 },
+  { value: 100000, weight: 10 },
   { value: 200000, weight: 5 },
 ];
 
